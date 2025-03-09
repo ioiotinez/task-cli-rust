@@ -2,12 +2,28 @@ use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;
+use clap::{Parser, Subcommand};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Task {
     id: i32,
     description: String,
     done: bool,
+}
+
+#[derive(Parser, Debug)]
+#[clap(name = "task_manager", version = "1.0", author = "Your Name")]
+struct Cli {
+    #[command(subcommand)]
+    command: Command,
+}
+
+#[derive(Subcommand, Debug)]
+enum Command {
+    Add { description: String },
+    List,
+    ChangeStatus { id: i32 },
+    Delete { id: i32 },
 }
 
 fn charge_tasks() -> Vec<Task> {
@@ -94,48 +110,17 @@ fn delete_task(tasks: &mut Vec<Task>, id: i32) {
 }
 
 fn main() {
+    // parseo los argumentos de la linea de comandos
+    let cli = Cli::parse();
     // cargo las tareas del archivo
     let mut tasks = charge_tasks();
-    // muestro el menu
-    loop {
-        println!("1. Add task");
-        println!("2. List tasks");
-        println!("3. Change task status");
-        println!("4. Delete task");
-        println!("5. Exit");
-        println!("Choose an option:");
-
-        // leo la opcion ingresada por el usuario
-        let mut option = String::new();
-        // leo la opcion ingresada por el usuario
-        std::io::stdin().read_line(&mut option).expect("Failed to read line");
-
-        match option.trim() {
-            "1" => {
-                println!("Enter the task description:");
-                let mut description = String::new();
-                std::io::stdin()
-                    .read_line(&mut description)
-                    .expect("Failed to read line");
-                add_task(&mut tasks, description.trim().to_string());
-            }
-            "2" => list_tasks(&tasks),
-            "3" => {
-                println!("Enter the task id:");
-                let mut id = String::new();
-                std::io::stdin().read_line(&mut id).expect("Failed to read line");
-                let id = id.trim().parse::<i32>().expect("Invalid id");
-                change_task_status(&mut tasks, id);
-            }
-            "4" => {
-                println!("Enter the task id:");
-                let mut id = String::new();
-                std::io::stdin().read_line(&mut id).expect("Failed to read line");
-                let id = id.trim().parse::<i32>().expect("Invalid id");
-                delete_task(&mut tasks, id);
-            }
-            "5" => break,
-            _ => println!("Invalid option"),
-        }
+    
+    match cli.command {
+        Command::Add { description } => add_task(&mut tasks, description),
+        Command::List => list_tasks(&tasks),
+        Command::ChangeStatus { id } => change_task_status(&mut tasks, id),
+        Command::Delete { id } => delete_task(&mut tasks, id),
     }
+    
+    
 }
